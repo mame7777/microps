@@ -62,6 +62,14 @@ intr_raise_irq(unsigned int irq)
 static void *
 intr_thread(void *arg)
 {
+	int terminate = 0, sig, err;
+	struct irq_entry *entry;
+
+	debugf("start...");
+	pthread_barrier_wait(&barrier);
+	while (!terminate) {
+		err = sigwait(&sigmask, &sig);
+	}
 }
 
 int
@@ -96,4 +104,9 @@ void intr_shutdown(void)
 int
 intr_int(void)
 {
+	tid = pthread_self();
+	pthread_barrier_init(&barrier, NULL, 2);
+	sigemptyset(&sigmask);
+	sigaddset(&sigmask, SIGHUP);
+	return 0;
 }
