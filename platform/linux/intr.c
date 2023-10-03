@@ -57,6 +57,7 @@ intr_request_irq(unsigned int irq, int (*handler)(unsigned int irq, void *dev), 
 int
 intr_raise_irq(unsigned int irq)
 {
+	return pthread_kill(tid, (int)irq);
 }
 
 static void *
@@ -69,7 +70,26 @@ intr_thread(void *arg)
 	pthread_barrier_wait(&barrier);
 	while (!terminate) {
 		err = sigwait(&sigmask, &sig);
+		if (err) {
+			errorf("sigwait() %s", strerror(err));
+			break;
+		}
+		switch (sig) {
+		case SIGHUP:
+			terminate = 1;
+			break;
+		default:
+			for (entry = irqs; entry; entry = entry->next) {
+				if (entry-> irq == (unsigned int)sig) {
+					debugf("irq=%d name=%s", entry->irq, entry->name);
+					entry->handler(entry->irq, entry->dev);
+				}
+			}
+			break;
+		}
 	}
+	debugf("terminated");
+	return NULL;
 }
 
 int
@@ -91,7 +111,8 @@ intr_run(void)
 	return 0;
 }
 
-void intr_shutdown(void)
+void
+intr_shutdown(void)
 {
 	if (pthread_equal(tid, pthread_self()) != 0) {
 		/* Thread not created. */

@@ -25,7 +25,7 @@ intr_raise_irq(unsigned int irq);
 
 extern int
 intr_run(void);
-extern int
+extern void
 intr_shutdown(void);
 extern int
 intr_int(void);
