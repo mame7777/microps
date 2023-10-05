@@ -1,0 +1,226 @@
+[1mdiff --git a/driver/dummy.h b/driver/dummy.h[m
+[1mindex 23b3b16..3296821 100644[m
+[1m--- a/driver/dummy.h[m
+[1m+++ b/driver/dummy.h[m
+[36m@@ -2,7 +2,6 @@[m
+ #define DUMMY_H[m
+ [m
+ #include "net.h"[m
+[31m-[m
+ extern struct net_device *[m
+ dummy_init(void);[m
+ [m
+[1mdiff --git a/driver/loopback.c b/driver/loopback.c[m
+[1mindex 9ad213c..b047c89 100644[m
+[1m--- a/driver/loopback.c[m
+[1m+++ b/driver/loopback.c[m
+[36m@@ -95,10 +95,12 @@[m [mloopback_init(void)[m
+     }[m
+     dev->type = NET_DEVICE_TYPE_LOOPBACK;[m
+     dev->mtu = LOOPBACK_MTU;[m
+[31m-    dev->hlen = 0; /* non header */[m
+[31m-    dev->alen = 0; /* non address */[m
+[31m-    dev->flags = NET_DEVICE_FLAG_LOOPBACK;[m
+[32m+[m[32m    dev->hlen = 0;[m
+[32m+[m[32m    dev->alen = 0;[m
+     dev->ops = &loopback_ops;[m
+[32m+[m[32m    dev->flags = NET_DEVICE_FLAG_LOOPBACK;[m
+[32m+[m
+[32m+[m
+     lo = memory_alloc(sizeof(*lo));[m
+     if (!lo) {[m
+         errorf("memory_alloc() failure");[m
+[36m@@ -108,11 +110,14 @@[m [mloopback_init(void)[m
+     mutex_init(&lo->mutex);[m
+     queue_init(&lo->queue);[m
+     dev->priv = lo;[m
+[32m+[m
+     if (net_device_register(dev) == -1) {[m
+         errorf("net_device_register() failure");[m
+         return NULL;[m
+     }[m
+     intr_request_irq(lo->irq, loopback_isr, INTR_IRQ_SHARED, dev->name, dev);[m
+[32m+[m
+     debugf("initialized, dev=%s", dev->name);[m
+     return dev;[m
+[31m-}[m
+[32m+[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/ip.c b/ip.c[m
+[1mindex e679260..6b92e00 100644[m
+[1m--- a/ip.c[m
+[1m+++ b/ip.c[m
+[36m@@ -14,3 +14,4 @@[m [mint[m
+ ip_init(void)[m
+ {[m
+ }[m
+[41m+[m
+[1mdiff --git a/ip.h b/ip.h[m
+[1mindex a99585b..9df70d4 100644[m
+[1m--- a/ip.h[m
+[1m+++ b/ip.h[m
+[36m@@ -4,4 +4,4 @@[m
+ extern int[m
+ ip_init(void);[m
+ [m
+[31m-#endif[m
+[32m+[m[32m#endif[m
+\ No newline at end of file[m
+[1mdiff --git a/net.c b/net.c[m
+[1mindex aca0050..dcfb607 100644[m
+[1m--- a/net.c[m
+[1m+++ b/net.c[m
+[36m@@ -25,6 +25,11 @@[m [mstruct net_protocol_queue_entry {[m
+ static struct net_device *devices;[m
+ static struct net_protocol *protocols;[m
+ [m
+[32m+[m[32m{[m
+[32m+[m[32m    /* data */[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m
+ struct net_device *[m
+ net_device_alloc(void)[m
+ {[m
+[36m@@ -108,7 +113,7 @@[m [mnet_device_output(struct net_device *dev, uint16_t type, const uint8_t *data, si[m
+     return 0;[m
+ }[m
+ [m
+[31m-/* NOTE: must not be call after net_run() */[m
+[32m+[m[32m/* NOTE: must not be call after ner_run() */[m
+ int[m
+ net_protocol_register(uint16_t type, void (*handler)(const uint8_t *data, size_t len, struct net_device *dev))[m
+ {[m
+[36m@@ -129,6 +134,7 @@[m [mnet_run(void)[m
+         errorf("intr_run() failure");[m
+         return -1;[m
+     }[m
+[32m+[m
+     debugf("open all devices...");[m
+     for (dev = devices; dev; dev = dev->next) {[m
+         net_device_open(dev);[m
+[36m@@ -159,4 +165,4 @@[m [mnet_init(void)[m
+     }[m
+     infof("initialized");[m
+     return 0;[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/net.h b/net.h[m
+[1mindex c99cac0..842ecd9 100644[m
+[1m--- a/net.h[m
+[1m+++ b/net.h[m
+[36m@@ -8,15 +8,15 @@[m
+ #define IFNAMSIZ 16[m
+ #endif[m
+ [m
+[31m-#define NET_DEVICE_TYPE_DUMMY     0x0000[m
+[31m-#define NET_DEVICE_TYPE_LOOPBACK  0x0001[m
+[31m-#define NET_DEVICE_TYPE_ETHERNET  0x0002[m
+[32m+[m[32m#define NET_DEVICE_TYPE_DUMMY    0x0000[m
+[32m+[m[32m#define NET_DEVICE_TYPE_LOOPBACK 0x0001[m
+[32m+[m[32m#define NET_DEVICE_TYPE_ETHERNET 0x0002[m
+ [m
+ #define NET_DEVICE_FLAG_UP        0x0001[m
+ #define NET_DEVICE_FLAG_LOOPBACK  0x0010[m
+[31m-#define NET_DEVICE_FLAG_BROADCAST 0x0020[m
+[32m+[m[32m#define MET_DEVICE_FLAG_BROADCAST 0x0020[m
+ #define NET_DEVICE_FLAG_P2P       0x0040[m
+[31m-#define NET_DEVICE_FLAG_NEED_ARP  0x0100[m
+[32m+[m[32m#define MET_DEVICE_FLAG_NEED_ARP  0x0100[m
+ [m
+ #define NET_DEVICE_ADDR_LEN 16[m
+ [m
+[36m@@ -24,9 +24,9 @@[m
+ #define NET_DEVICE_STATE(x) (NET_DEVICE_IS_UP(x) ? "up" : "down")[m
+ [m
+ /* NOTE: use same value as the Ethernet types */[m
+[31m-#define NET_PROTOCOL_TYPE_IP   0x0800[m
+[31m-#define NET_PROTOCOL_TYPE_ARP  0x0806[m
+[31m-#define NTT_PROTOCOL_TYPE_IPV6 0x86dd[m
+[32m+[m[32m#define NET_PROTOCOL_TYPE_IP 0x0800[m
+[32m+[m[32m#define NET_PROTOCOL_TYPE_ARP 0x0806[m
+[32m+[m[32m#define NET_PROTOCOL_TYPE_IPV6 0x86dd[m
+ [m
+ struct net_device {[m
+     struct net_device *next;[m
+[36m@@ -72,4 +72,4 @@[m [mnet_shutdown(void);[m
+ extern int[m
+ net_init(void);[m
+ [m
+[31m-#endif[m
+[32m+[m[32m#endif[m
+\ No newline at end of file[m
+[1mdiff --git a/platform/linux/intr.c b/platform/linux/intr.c[m
+[1mindex 6a178ff..1b7bb5f 100644[m
+[1m--- a/platform/linux/intr.c[m
+[1m+++ b/platform/linux/intr.c[m
+[36m@@ -8,7 +8,7 @@[m
+ #include "util.h"[m
+ [m
+ struct irq_entry {[m
+[31m-    struct irq_entry *next;[m
+[32m+[m[32m  struct irq_entry *next;[m
+     unsigned int irq;[m
+     int (*handler)(unsigned int irq, void *dev);[m
+     int flags;[m
+[36m@@ -23,14 +23,13 @@[m [mstatic sigset_t sigmask;[m
+ [m
+ static pthread_t tid;[m
+ static pthread_barrier_t barrier;[m
+[31m-[m
+[31m-int[m
+[32m+[m[32mint[m[41m [m
+ intr_request_irq(unsigned int irq, int (*handler)(unsigned int irq, void *dev), int flags, const char *name, void *dev)[m
+ {[m
+     struct irq_entry *entry;[m
+ [m
+     debugf("irq=%u, flags=%d, name=%s", irq, flags, name);[m
+[31m-    for (entry = irqs; entry; entry = entry->next) {[m
+[32m+[m[32m    for (entry = irqs; entry; entry=entry->next) {[m
+         if (entry->irq == irq) {[m
+             if (entry->flags ^ INTR_IRQ_SHARED || flags ^ INTR_IRQ_SHARED) {[m
+                 errorf("conflicts with already registered IRQs");[m
+[36m@@ -81,8 +80,8 @@[m [mintr_thread(void *arg)[m
+             break;[m
+         default:[m
+             for (entry = irqs; entry; entry = entry->next) {[m
+[31m-                if (entry->irq == (unsigned int)sig) {[m
+[31m-                    debugf("irq=%d, name=%s", entry->irq, entry->name);[m
+[32m+[m[32m                if (entry-> irq == (unsigned int)sig) {[m
+[32m+[m[32m                    debugf("irq=%d name=%s", entry->irq, entry->name);[m
+                     entry->handler(entry->irq, entry->dev);[m
+                 }[m
+             }[m
+[36m@@ -131,4 +130,4 @@[m [mintr_init(void)[m
+     sigemptyset(&sigmask);[m
+     sigaddset(&sigmask, SIGHUP);[m
+     return 0;[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/platform/linux/platform.h b/platform/linux/platform.h[m
+[1mindex 89dc640..9c6f120 100644[m
+[1m--- a/platform/linux/platform.h[m
+[1m+++ b/platform/linux/platform.h[m
+[36m@@ -10,6 +10,8 @@[m
+  * Memory[m
+  */[m
+ [m
+[32m+[m
+[32m+[m
+ static inline void *[m
+ memory_alloc(size_t size)[m
+ {[m
+[1mdiff --git a/test/step1.c b/test/step1.c[m
+[1mindex dadaa72..4b15986 100644[m
+[1m--- a/test/step1.c[m
+[1m+++ b/test/step1.c[m
+[36m@@ -46,4 +46,4 @@[m [mmain(int argc, char *argv[])[m
+     }[m
+     net_shutdown();[m
+     return 0;[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
